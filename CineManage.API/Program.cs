@@ -1,4 +1,6 @@
+using CineManage.API.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,6 +27,12 @@ builder.Services.AddCors(options =>
             AllowAnyHeader();
     });
 });
+
+builder.Services.AddDbContext<ApplicationContext>(options =>
+{
+    options.UseSqlServer("name=DefaultConnection");
+});
+
 
 var app = builder.Build();
 
