@@ -1,4 +1,6 @@
+using CineManage.API.Data;
 using CineManage.API.Entities;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
 
@@ -9,11 +11,13 @@ namespace CineManage.API.Controllers;
 public class GenresController: ControllerBase
 {
     private readonly IOutputCacheStore _outputCacheStore;
+    private readonly ApplicationContext _appContext;
     private const string genresCacheTag = "genres";
 
-    public GenresController(IOutputCacheStore outputCacheStore)
+    public GenresController(IOutputCacheStore outputCacheStore, ApplicationContext appContext)
     {
         _outputCacheStore = outputCacheStore;
+        _appContext = appContext;
     }
     
 
@@ -29,7 +33,7 @@ public class GenresController: ControllerBase
         };
     }
 
-    [HttpGet("{id:int}")] // api/genres/500
+    [HttpGet("{id:int}", Name = "GetGenreById")] // api/genres/500
     [OutputCache(Tags = [genresCacheTag])]
     public Task<ActionResult<Genre>> Get(int id)
     {
@@ -40,7 +44,10 @@ public class GenresController: ControllerBase
     public async Task<ActionResult<Genre>> Post([FromBody]Genre genre)
     {
         await _outputCacheStore.EvictByTagAsync("genres", default);
-        throw new NotImplementedException();
+        _appContext.Add(genre);
+        await _appContext.SaveChangesAsync();
+
+        return  CreatedAtRoute("GetGenreById", new { id = genre.Id }, genre);
     }
 
     [HttpPut]
