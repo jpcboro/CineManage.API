@@ -46,17 +46,26 @@ public class GenresController: ControllerBase
 
     [HttpGet("{id:int}", Name = "GetGenreById")] // api/genres/500
     [OutputCache(Tags = [genresCacheTag])]
-    public Task<ActionResult<Genre>> Get(int id)
+    public async Task<ActionResult<GenreReadDTO>> Get(int id)
     {
-        throw new NotImplementedException();
+        GenreReadDTO? genre = await _appContext.Genres
+             .ProjectTo<GenreReadDTO>(_mapper.ConfigurationProvider).FirstOrDefaultAsync(g => g.Id == id);
+
+        if (genre is null)
+        {
+            return NotFound();
+        }
+
+        return genre;
+
     }
     
     [HttpPost]
     public async Task<CreatedAtRouteResult> Post([FromBody]GenreCreationDTO genreCreationDTO)
     {
-        var genre = _mapper.Map<Genre>(genreCreationDTO);
+        Genre genre = _mapper.Map<Genre>(genreCreationDTO);
 
-        await _outputCacheStore.EvictByTagAsync("genres", default);
+        await _outputCacheStore.EvictByTagAsync(genresCacheTag, default);
         _appContext.Add(genre);
         await _appContext.SaveChangesAsync();
 
@@ -65,10 +74,29 @@ public class GenresController: ControllerBase
         return  CreatedAtRoute("GetGenreById", new { id = genreDTO.Id }, genreDTO);
     }
 
-    [HttpPut]
-    public ActionResult Put([FromBody]Genre genre)
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> Put(int id, [FromBody]GenreCreationDTO genreCreationDTO)
     {
+        bool doesGenreExist = await _appContext.Genres.AnyAsync(g => g.Id == id);
+
+        if (!doesGenreExist)
+        {
+            return NotFound();
+        }
+
+        Genre genre = _mapper.Map<Genre>(genreCreationDTO);
+
+        genre.Id = id;
+
+        _appContext.Update(genre);
+
+        await _appContext.SaveChangesAsync();
+
+        await _outputCacheStore.EvictByTagAsync(genresCacheTag, default);
+
         return NoContent();
+
+
     }
 
     [HttpDelete]
