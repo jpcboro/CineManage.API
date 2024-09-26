@@ -1,3 +1,4 @@
+using CineManage;
 using CineManage.API.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -23,8 +24,10 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins(allowedOrigins).AllowAnyMethod().
-            AllowAnyHeader();
+        policy.WithOrigins(allowedOrigins)
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .WithExposedHeaders(Constants.TotalRecordsCount);
     });
 });
 
@@ -32,6 +35,8 @@ builder.Services.AddDbContext<ApplicationContext>(options =>
 {
     options.UseSqlServer("name=DefaultConnection");
 });
+
+builder.Services.AddAutoMapper(typeof(Program));
 
 
 var app = builder.Build();
