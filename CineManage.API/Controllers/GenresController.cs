@@ -99,9 +99,20 @@ public class GenresController: ControllerBase
 
     }
 
-    [HttpDelete]
-    public ActionResult Delete()
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id)
     {
+        int deletedRecords = await _appContext.Genres
+                                    .Where(g => g.Id == id)
+                                    .ExecuteDeleteAsync();
+
+        if (deletedRecords == 0)
+        {
+            return NotFound();
+        }
+
+        await _outputCacheStore.EvictByTagAsync(genresCacheTag, default);
+
         return NoContent();
     }
 }
