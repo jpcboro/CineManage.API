@@ -9,6 +9,13 @@ namespace CineManage.API.Utilities
         public MapperProfiles()
         {
             ConfigureGenres();
+            ConfigureActors();
+        }
+
+        private void ConfigureActors()
+        {
+            CreateMap<ActorCreationDTO, Actor>()
+                .ForMember(a => a.Picture, options => options.Ignore());
         }
 
         private void ConfigureGenres()
