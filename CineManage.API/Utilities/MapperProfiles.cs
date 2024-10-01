@@ -16,6 +16,7 @@ namespace CineManage.API.Utilities
         {
             CreateMap<ActorCreationDTO, Actor>()
                 .ForMember(a => a.Picture, options => options.Ignore());
+            CreateMap<Actor, ActorReadDTO>();
         }
 
         private void ConfigureGenres()

@@ -1,5 +1,6 @@
 using CineManage;
 using CineManage.API.Data;
+using CineManage.API.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 
@@ -37,6 +38,8 @@ builder.Services.AddDbContext<ApplicationContext>(options =>
 });
 
 builder.Services.AddAutoMapper(typeof(Program));
+
+builder.Services.AddScoped<IFileStorage, AzureFileStorage>();
 
 
 var app = builder.Build();
