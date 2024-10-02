@@ -84,5 +84,45 @@ namespace CineManage.API.Controllers
             return CreatedAtRoute("GetActorById", new { Id = actor.Id}, actorReadDto);
 
         }
+
+        [HttpPut("{id:int}")]
+        public async Task<IActionResult> Put(int id, [FromForm]ActorCreationDTO actorCreateDTO)
+        {
+            var actor = await _appContext.Actors.FirstOrDefaultAsync(a => a.Id == id);
+
+            if (actor == null)
+            {
+                return NotFound();
+            }
+
+            actor = _mapper.Map(actorCreateDTO, actor);
+
+            if (actorCreateDTO.Picture != null)
+            {
+                actor.Picture = await _fileStorage.SaveEditedFile(actor.Picture, actorsContainer, actorCreateDTO.Picture);
+            }
+
+            await _appContext.SaveChangesAsync();
+
+            await _outputCacheStore.EvictByTagAsync(actorsCacheTag, default);
+
+            return NoContent();
+        }
+
+        [HttpDelete("{id:int}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            int deletedActors = await _appContext.Actors.Where(a => a.Id == id)
+                                      .ExecuteDeleteAsync();
+
+            if (deletedActors == 0)
+            {
+                return NotFound();
+            }
+
+            await _outputCacheStore.EvictByTagAsync(actorsCacheTag, default);
+
+            return NoContent();
+        }
     }
 }
