@@ -112,13 +112,18 @@ namespace CineManage.API.Controllers
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {
-            int deletedActors = await _appContext.Actors.Where(a => a.Id == id)
-                                      .ExecuteDeleteAsync();
+           
+            var actor = await _appContext.Actors.FirstOrDefaultAsync(a => a.Id == id);
 
-            if (deletedActors == 0)
+            if (actor == null)
             {
                 return NotFound();
             }
+
+            _appContext.Remove(actor);
+            await _appContext.SaveChangesAsync();
+
+            await _fileStorage.Delete(actor.Picture, actorsContainer);
 
             await _outputCacheStore.EvictByTagAsync(actorsCacheTag, default);
 
