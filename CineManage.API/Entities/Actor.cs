@@ -1,9 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using CineManage.API.DTOs;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 
 namespace CineManage.API.Entities
 {
-    public class Actor
+    public class Actor : IId
     {
         public int Id { get; set; }
         [Required]

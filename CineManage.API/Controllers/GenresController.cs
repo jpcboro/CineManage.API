@@ -13,7 +13,7 @@ namespace CineManage.API.Controllers;
 
 [Route("api/genres")]
 [ApiController]
-public class GenresController: ControllerBase
+public class GenresController: StandardBaseController
 {
     private readonly IOutputCacheStore _outputCacheStore;
     private readonly ApplicationContext _appContext;
@@ -21,7 +21,7 @@ public class GenresController: ControllerBase
     private const string genresCacheTag = "genres";
 
     public GenresController(IOutputCacheStore outputCacheStore, ApplicationContext appContext,
-        IMapper mapper)
+        IMapper mapper) : base(appContext: appContext, mapper: mapper, outputCacheStore: outputCacheStore, cacheTag: genresCacheTag)
     {
         _outputCacheStore = outputCacheStore;
         _appContext = appContext;
@@ -33,86 +33,31 @@ public class GenresController: ControllerBase
     [OutputCache(Tags = [genresCacheTag])]
     public async Task<List<GenreReadDTO>> Get([FromQuery] PaginationDTO pagination)
     {
-        IQueryable<Genre> queryableGenres = _appContext.Genres;
-
-        await HttpContext.InserPaginationParametersInHeader(queryableGenres);
-
-        return await queryableGenres
-            .OrderBy(i => i.Name)
-            .Paginate(pagination)
-            .ProjectTo<GenreReadDTO>(_mapper.ConfigurationProvider)
-            .ToListAsync();
+        return await Get<Genre, GenreReadDTO>(paginationDTO: pagination, orderBy: genre => genre.Name);
     }
 
     [HttpGet("{id:int}", Name = "GetGenreById")] // api/genres/500
     [OutputCache(Tags = [genresCacheTag])]
     public async Task<ActionResult<GenreReadDTO>> Get(int id)
     {
-        GenreReadDTO? genre = await _appContext.Genres
-             .ProjectTo<GenreReadDTO>(_mapper.ConfigurationProvider).FirstOrDefaultAsync(g => g.Id == id);
-
-        if (genre is null)
-        {
-            return NotFound();
-        }
-
-        return genre;
-
+        return await Get<Genre, GenreReadDTO>(id);
     }
     
     [HttpPost]
     public async Task<CreatedAtRouteResult> Post([FromBody]GenreCreationDTO genreCreationDTO)
     {
-        Genre genre = _mapper.Map<Genre>(genreCreationDTO);
-
-        await _outputCacheStore.EvictByTagAsync(genresCacheTag, default);
-        _appContext.Add(genre);
-        await _appContext.SaveChangesAsync();
-
-        var genreDTO = _mapper.Map<GenreReadDTO>(genre);
-
-        return  CreatedAtRoute("GetGenreById", new { id = genreDTO.Id }, genreDTO);
+        return await Post<GenreCreationDTO, Genre, GenreReadDTO>(genreCreationDTO, routeName: "GetGenreById");
     }
 
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Put(int id, [FromBody]GenreCreationDTO genreCreationDTO)
     {
-        bool doesGenreExist = await _appContext.Genres.AnyAsync(g => g.Id == id);
-
-        if (!doesGenreExist)
-        {
-            return NotFound();
-        }
-
-        Genre genre = _mapper.Map<Genre>(genreCreationDTO);
-
-        genre.Id = id;
-
-        _appContext.Update(genre);
-
-        await _appContext.SaveChangesAsync();
-
-        await _outputCacheStore.EvictByTagAsync(genresCacheTag, default);
-
-        return NoContent();
-
-
+        return await Put<GenreCreationDTO, Genre>(id, genreCreationDTO);
     }
 
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {
-        int deletedRecords = await _appContext.Genres
-                                    .Where(g => g.Id == id)
-                                    .ExecuteDeleteAsync();
-
-        if (deletedRecords == 0)
-        {
-            return NotFound();
-        }
-
-        await _outputCacheStore.EvictByTagAsync(genresCacheTag, default);
-
-        return NoContent();
+        return await Delete<Genre>(id);
     }
 }

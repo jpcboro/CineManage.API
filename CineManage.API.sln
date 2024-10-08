@@ -1,6 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CineManage.API", "CineManage.API\CineManage.API.csproj", "{FD2ED0B7-29B4-4416-8CB2-57776A54B840}"
+# Visual Studio Version 17
+VisualStudioVersion = 17.9.34714.143
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CineManage.API", "CineManage.API\CineManage.API.csproj", "{FD2ED0B7-29B4-4416-8CB2-57776A54B840}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CineManage.API.Tests", "CineManage.API.Tests\CineManage.API.Tests.csproj", "{E4CC3473-9699-47CE-A23B-C565BA00F16E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -12,5 +17,15 @@ Global
 		{FD2ED0B7-29B4-4416-8CB2-57776A54B840}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FD2ED0B7-29B4-4416-8CB2-57776A54B840}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FD2ED0B7-29B4-4416-8CB2-57776A54B840}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E4CC3473-9699-47CE-A23B-C565BA00F16E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E4CC3473-9699-47CE-A23B-C565BA00F16E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E4CC3473-9699-47CE-A23B-C565BA00F16E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E4CC3473-9699-47CE-A23B-C565BA00F16E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {4495037E-367E-4715-A7C7-0F8CB8930F96}
 	EndGlobalSection
 EndGlobal

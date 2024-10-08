@@ -1,6 +1,6 @@
 ﻿namespace CineManage.API.DTOs
 {
-    public class ActorReadDTO
+    public class ActorReadDTO : IId
     {
         public int Id { get; set; }
         public required string Name { get; set; }

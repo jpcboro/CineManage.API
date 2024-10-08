@@ -13,7 +13,7 @@ namespace CineManage.API.Controllers
 {
     [Route("api/actors")]
     [ApiController]
-    public class ActorsController : ControllerBase
+    public class ActorsController : StandardBaseController
     {
         private readonly ApplicationContext _appContext;
         private readonly IMapper _mapper;
@@ -23,7 +23,9 @@ namespace CineManage.API.Controllers
         private readonly string actorsContainer = "actors";
 
         public ActorsController(ApplicationContext appContext, IMapper mapper, IOutputCacheStore outputCacheStore,
-            IFileStorage fileStorage)
+            IFileStorage fileStorage) : base(appContext: appContext, mapper: mapper, 
+                outputCacheStore: outputCacheStore,
+                cacheTag: actorsCacheTag)
         {
             _appContext = appContext;
             _mapper = mapper;
@@ -35,29 +37,24 @@ namespace CineManage.API.Controllers
         [OutputCache(Tags = [actorsCacheTag])]
         public async Task<List<ActorReadDTO>> Get([FromQuery] PaginationDTO pagination)
         {
-            var queryable = _appContext.Actors;
-           
-            await HttpContext.InserPaginationParametersInHeader(queryable);
-            
-            return await queryable.OrderBy(a => a.Name)
-                            .Paginate(pagination)
-                            .ProjectTo<ActorReadDTO>(_mapper.ConfigurationProvider)
-                            .ToListAsync();
+            return await Get<Actor, ActorReadDTO>(paginationDTO: pagination, orderBy: actor => actor.Name);
         }
 
         [HttpGet("{id:int}", Name = "GetActorById")]
         [OutputCache(Tags = [actorsCacheTag])]
         public async Task<ActionResult<ActorReadDTO>> Get(int id)
         {
-            var actor = await _appContext.Actors.ProjectTo<ActorReadDTO>(_mapper.ConfigurationProvider)
-                .FirstOrDefaultAsync(a => a.Id == id);
+            //var actor = await _appContext.Actors.ProjectTo<ActorReadDTO>(_mapper.ConfigurationProvider)
+            //    .FirstOrDefaultAsync(a => a.Id == id);
 
-            if (actor == null)
-            {
-                return NotFound();
-            }
+            //if (actor == null)
+            //{
+            //    return NotFound();
+            //}
 
-            return actor;
+            //return actor;
+
+            return await Get<Actor, ActorReadDTO>(id);
 
         }
 

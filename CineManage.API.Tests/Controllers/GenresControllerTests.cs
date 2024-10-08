@@ -90,12 +90,8 @@ namespace CineManage.API.Tests.Controllers
 
             var genreReadDTOs = fixture.CreateMany<GenreReadDTO>();
 
-            //_mockAppContext.Setup<DbSet<Genre>>(m => m.Genres).ReturnsDbSet(genres);
-
             _mockMapper.Setup(m => m.ConfigurationProvider)
                 .Returns(new MapperConfiguration(g => g.CreateMap<Genre, GenreReadDTO>()));
-            //_mockMapper.Setup(m => m.ProjectTo<GenreReadDTO>(It.IsAny<IQueryable<Genre>>(),
-            //    It.IsAny<IConfigurationProvider>())).Returns(genreReadDTOs.AsQueryable());
 
             //Act
             var result = await _controller.Get(pagination);
