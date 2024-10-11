@@ -1,8 +1,12 @@
+using AutoMapper;
 using CineManage;
 using CineManage.API.Data;
 using CineManage.API.Services;
+using CineManage.API.Utilities;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using NetTopologySuite;
+using NetTopologySuite.Geometries;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,12 +36,23 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.Services.AddHttpContextAccessor();
+
 builder.Services.AddDbContext<ApplicationContext>(options =>
 {
-    options.UseSqlServer("name=DefaultConnection");
+    options.UseSqlServer("name=DefaultConnection", sqlServer => sqlServer.UseNetTopologySuite());
 });
 
-builder.Services.AddAutoMapper(typeof(Program));
+builder.Services.AddSingleton<GeometryFactory>(NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326));
+
+//builder.Services.AddAutoMapper(typeof(Program));
+
+builder.Services.AddSingleton(provider => new MapperConfiguration(config =>
+{
+    var geoFactory = provider.GetRequiredService<GeometryFactory>();
+    config.AddProfile(new MapperProfiles(geoFactory));
+}).CreateMapper()
+);
 
 builder.Services.AddScoped<IFileStorage, AzureFileStorage>();
 

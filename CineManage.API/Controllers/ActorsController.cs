@@ -92,7 +92,7 @@ namespace CineManage.API.Controllers
                 return NotFound();
             }
 
-            actor = _mapper.Map(actorCreateDTO, actor);
+            _mapper.Map(actorCreateDTO, actor);
 
             if (actorCreateDTO.Picture != null)
             {

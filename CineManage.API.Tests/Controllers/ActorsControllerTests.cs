@@ -222,9 +222,6 @@ namespace CineManage.API.Tests.Controllers
         {
             //Arrange
             var actorId = 3;
-            var actor = new Actor { Id = actorId, 
-                Name = "Chris Hemsworth", 
-                Picture = "chrishemsworth.jpg" };
 
             var actorCreationDTO = new ActorCreationDTO
             {
@@ -232,19 +229,25 @@ namespace CineManage.API.Tests.Controllers
                 Picture = new FormFile(null, 0, 0, null, "chrishemsworthEDITED.jpg")
             };
 
-            _mockMapper.Setup(m => m.Map(It.IsAny<ActorCreationDTO>(), It.IsAny<Actor>())).Returns(actor);
 
-            _mockFileStorage.Setup(m => m.SaveEditedFile(actor.Picture, It.IsAny<string>(), actorCreationDTO.Picture))
+            _mockMapper.Setup(m => m.Map(It.IsAny<ActorCreationDTO>(), It.IsAny<Actor>())).Callback<ActorCreationDTO, Actor>(
+                (dto, a) =>
+                {
+                    a.Name = dto.Name;
+                });
+
+
+            _mockFileStorage.Setup(m => m.SaveEditedFile(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IFormFile>()))
                 .ReturnsAsync("chrishemsworthEDITED.jpg");
 
-            var trackedActor = _appContext.Actors.Find(3);
-            _appContext.Entry(trackedActor).State = EntityState.Detached;
 
             //Act
             var result = await _controller.Put(actorId, actorCreationDTO);
 
             //Assert
-            var noContentResult = Assert.IsType<NoContentResult>(result);
+            var actorSaved = _appContext.Actors.Find(actorId)?.Name;
+            Assert.Equal(actorCreationDTO.Name, actorSaved);
+            Assert.IsType<NoContentResult>(result);
             _mockOutputCacheStore.Verify(o => o.EvictByTagAsync(It.IsAny<string>(), default), Times.Once);
         }
 

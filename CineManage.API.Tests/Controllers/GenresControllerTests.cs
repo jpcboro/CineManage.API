@@ -134,17 +134,19 @@ namespace CineManage.API.Tests.Controllers
             //Arrange
 
             var genreCreationDTO = new GenreCreationDTO { Name = "Action EDITED" };
-            var genre = new Genre { Id = 1, Name = "Action EDITED" };
+            var genreId = 1;
+            var genre = _appContext.Genres.Find(genreId);
+            _appContext.Entry(genre).State = EntityState.Detached;
 
-            _mockMapper.Setup(m => m.Map<Genre>(genreCreationDTO)).Returns(genre);
-
-            var trackedGenre = _appContext.Genres.Find(1);
-            _appContext.Entry(trackedGenre).State = EntityState.Detached;
+            _mockMapper.Setup(m => m.Map<Genre>(genreCreationDTO)).Returns(
+                new Genre { Id = genreId, Name= genreCreationDTO.Name }
+                );
 
             //Act
-            var result = await _controller.Put(1, genreCreationDTO);
+            var result = await _controller.Put(genreId, genreCreationDTO);
 
             //Assert
+            Assert.Equal(genreCreationDTO.Name, _appContext.Genres.Find(genreId)?.Name);
             Assert.IsType<NoContentResult>(result);
             _mockOutputCacheStore.Verify(o => o.EvictByTagAsync(It.IsAny<string>(), default), Times.Once);
 
@@ -165,18 +167,18 @@ namespace CineManage.API.Tests.Controllers
 
             _mockOutputCacheStore.Verify(o => o.EvictByTagAsync(It.IsAny<string>(), default), Times.Never);
 
-
         }
 
         [Fact]
         public async Task Delete_ShouldRemoveGenreAndReturnNoContent()
         {
             //Act
-            var result = await _controller.Delete(1);
+            int genreId = 1;
+            var result = await _controller.Delete(genreId);
 
             //Assert
             Assert.IsType<NoContentResult>(result);
-
+            Assert.Null(await _appContext.Genres.FindAsync(genreId));
             _mockOutputCacheStore.Verify(o => o.EvictByTagAsync(It.IsAny<string>(), default), Times.Once);
 
         }
