@@ -44,18 +44,14 @@ namespace CineManage.API.Controllers
         [OutputCache(Tags = [actorsCacheTag])]
         public async Task<ActionResult<ActorReadDTO>> Get(int id)
         {
-            //var actor = await _appContext.Actors.ProjectTo<ActorReadDTO>(_mapper.ConfigurationProvider)
-            //    .FirstOrDefaultAsync(a => a.Id == id);
-
-            //if (actor == null)
-            //{
-            //    return NotFound();
-            //}
-
-            //return actor;
-
             return await Get<Actor, ActorReadDTO>(id);
+        }
 
+        [HttpGet("{name}")]
+        public async Task<ActionResult<List<MovieActorReadDTO>>> Get(string name)
+        {
+            return await _appContext.Actors.Where(actor => actor.Name.Contains(name))
+                .ProjectTo<MovieActorReadDTO>(_mapper.ConfigurationProvider).ToListAsync();
         }
 
         [HttpPost]
