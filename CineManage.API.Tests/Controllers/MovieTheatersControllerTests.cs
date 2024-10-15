@@ -40,16 +40,16 @@ namespace CineManage.API.Tests.Controllers
     {
         Id = 1,
         Name = "Carlton Indie",
-        Location = new Point(-37.805508, 144.971445) // Coordinates for New York City
+        Location = new Point(-37.805508, 144.971445) 
         {
-            SRID = 4326 // Spatial reference system identifier for WGS84 (longitude, latitude)
+            SRID = 4326
         }
     },
     new MovieTheater
     {
         Id = 2,
         Name = "Royal Botanical Gardens Theatre",
-        Location = new Point(-37.828806, 144.980058) // Coordinates for Los Angeles
+        Location = new Point(-37.828806, 144.980058) 
         {
             SRID = 4326
         }
@@ -58,7 +58,7 @@ namespace CineManage.API.Tests.Controllers
     {
         Id = 3,
         Name = "St Kilda Showing",
-        Location = new Point(-37.86629, 144.97306) // Coordinates for San Francisco
+        Location = new Point(-37.86629, 144.97306) 
         {
             SRID = 4326
         }
@@ -110,6 +110,47 @@ namespace CineManage.API.Tests.Controllers
             Assert.Equal(3, result.Count);
             Assert.Equal(1, result[0].Id);
             Assert.Equal("Carlton Indie", result[0].Name);
+        }
+
+        [Fact]
+        public async Task Get_ById_ShouldReturnMovieTheater()
+        {
+            // Arrange
+
+            int id = 1;
+
+            _mockMapper.Setup(m => m.ConfigurationProvider)
+                .Returns(new MapperConfiguration(g => g.CreateMap<MovieTheater, MovieTheaterReadDTO>()));
+
+
+            // Act
+
+            var result = await _controller.Get(id);
+
+            //Assert
+
+            Assert.NotNull(result);
+            var actionResult = Assert.IsType<ActionResult<MovieTheaterReadDTO>>(result);
+            var movieTheaterReturnVal = Assert.IsType<MovieTheaterReadDTO>(actionResult.Value);
+            Assert.Equal("Carlton Indie", movieTheaterReturnVal.Name);
+        }
+
+        [Fact]
+        public async Task Get_ById_ShouldReturnNotFound_WhenActorDoesNotExist()
+        {
+            //Arrange
+
+            int id = 99;
+            _mockMapper.Setup(m => m.ConfigurationProvider)
+                .Returns(new MapperConfiguration(g => g.CreateMap<MovieTheater, MovieTheaterReadDTO>()));
+
+            //Act
+
+            var result = await _controller.Get(id);
+
+            //Assert
+
+            Assert.IsType<NotFoundResult>(result.Result);
         }
 
         [Fact]

@@ -6,6 +6,7 @@ using CineManage.API.DTOs;
 using CineManage.API.Entities;
 using CineManage.API.Services;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
@@ -57,6 +58,13 @@ namespace CineManage.API.Tests.Controllers
                 Name = "Chris Hemsworth",
                 DateOfBirth = new DateTime(1983, 8, 11),
                 Picture = "https://example.com/chris.jpg"
+            },
+            new Actor
+            {
+                Id = 4,
+                Name = "Chris Evans",
+                DateOfBirth = new DateTime(1981, 6, 13),
+                Picture = "https://example.com/chrisEvans.jpg"
             }
         };
 
@@ -93,8 +101,6 @@ namespace CineManage.API.Tests.Controllers
             };
 
 
-            //var actorReadDTOs = fixture.CreateMany<ActorReadDTO>();
-
             _mockMapper.Setup(m => m.ConfigurationProvider)
                 .Returns(new MapperConfiguration(g => g.CreateMap<Actor, ActorReadDTO>()));
            
@@ -105,9 +111,9 @@ namespace CineManage.API.Tests.Controllers
 
             //Assert
             Assert.NotNull(result);
-            Assert.Equal(3, result.Count);
-            Assert.Equal("Chris Hemsworth", result[0].Name);
-            Assert.Equal(3, result[0].Id);
+            Assert.Equal(4, result.Count);
+            Assert.Equal("Chris Evans", result[0].Name);
+            Assert.Equal(4, result[0].Id);
         }
 
         [Fact]
@@ -149,6 +155,30 @@ namespace CineManage.API.Tests.Controllers
             //Assert
 
             Assert.IsType<NotFoundResult>(result.Result);
+        }
+
+        [Theory]
+        [InlineData("Chris", 2)]
+        [InlineData("Scarlett", 1)]
+        [InlineData("Robert", 1)]
+       
+
+        public async Task GetByName_ShouldReturnActorsList_WithSameName(string actorName, int resultCount)
+        {
+
+            _mockMapper.Setup(m => m.ConfigurationProvider)
+                .Returns(new MapperConfiguration(g => g.CreateMap<Actor, MovieActorReadDTO>()));
+
+
+            //Act
+            var result = await _controller.Get(actorName);
+
+            //Assert
+            Assert.NotNull(result);
+            var actionResult = Assert.IsType<ActionResult<List<MovieActorReadDTO>>>(result);
+            var actorsResultVal = Assert.IsType<List<MovieActorReadDTO>>(actionResult.Value);
+            Assert.Equal(resultCount, actorsResultVal.Count);
+            Assert.Contains(actorsResultVal, actor => actor.Name.Contains(actorName));
         }
 
         [Fact]
