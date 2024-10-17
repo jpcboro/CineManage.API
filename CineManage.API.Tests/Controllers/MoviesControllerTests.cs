@@ -127,7 +127,7 @@ namespace CineManage.API.Tests.Controllers
             int movieId = 99;
 
             _mockMapper.Setup(m => m.ConfigurationProvider)
-                .Returns(new MapperConfiguration(m => m.CreateMap<Movie, MovieReadDTO>()));
+                .Returns(new MapperConfiguration(m => m.CreateMap<Movie, MovieDetailsDTO>()));
 
             //Act
             var result = await _controller.Get(movieId);
@@ -142,15 +142,15 @@ namespace CineManage.API.Tests.Controllers
             //Arrange
             int movieId = 1;
             _mockMapper.Setup(m => m.ConfigurationProvider)
-                .Returns(new MapperConfiguration(m => m.CreateMap<Movie, MovieReadDTO>()));
+                .Returns(new MapperConfiguration(m => m.CreateMap<Movie, MovieDetailsDTO>()));
 
             //Act
             var result = await _controller.Get(movieId);
 
             //Assert
             Assert.NotNull(result);
-            var actionResult = Assert.IsType<ActionResult<MovieReadDTO>>(result);
-            var movieReturnVal = Assert.IsType<MovieReadDTO>(actionResult.Value);
+            var actionResult = Assert.IsType<ActionResult<MovieDetailsDTO>>(result);
+            var movieReturnVal = Assert.IsType<MovieDetailsDTO>(actionResult.Value);
             Assert.Equal("Inception", movieReturnVal.Title);
         }
 

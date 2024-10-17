@@ -33,10 +33,11 @@ namespace CineManage.API.Controllers
 
         [HttpGet("{id:int}", Name = getMovieByIdRouteName)]
         [OutputCache(Tags = [moviesCacheTag])]
-        public async Task<ActionResult<MovieReadDTO>> Get(int id)
+        public async Task<ActionResult<MovieDetailsDTO>> Get(int id)
         {
-            var movie = await _appContext.Movies.ProjectTo<MovieReadDTO>(_mapper.ConfigurationProvider)
-                                                          .FirstOrDefaultAsync(m => m.Id == id);
+            var movie = await _appContext.Movies
+                                         .ProjectTo<MovieDetailsDTO>(_mapper.ConfigurationProvider)
+                                         .FirstOrDefaultAsync(m => m.Id == id);
 
             if (movie == null)
             {
@@ -84,21 +85,36 @@ namespace CineManage.API.Controllers
             return CreatedAtRoute(getMovieByIdRouteName, new { Id = movie.Id }, movieReadDTO);
         }
 
-        //[HttpGet("putget/{id:int}")]
-        //public async Task<ActionResult<MoviesPutGetOptionsDTO>> PutGet(int id)
-        //{
-        //    var movie = await _appContext.Movies.ProjectTo<MovieDetailsDTO>(_mapper.ConfigurationProvider)
-        //        .FirstOrDefaultAsync(mdDTO => mdDTO.Id == id);
+        [HttpGet]
+        public async Task<ActionResult<HomePageDTO>> Get()
+        {
+            var dateToday = DateTime.Today;
+            var topNumber = 6;
 
-        //    if (movie == null)
-        //    {
-        //        return NotFound();
-        //    }
+            var upcomingMovies = await _appContext.Movies.Where(m => m.ReleaseDate > dateToday)
+                .OrderBy(m => m.ReleaseDate)
+                .Take(topNumber)
+                .ProjectTo<MovieReadDTO>(_mapper.ConfigurationProvider)
+                .ToListAsync();
 
+            var nowShowing = await _appContext.Movies.Where(m => m.CinemaScreenings.Select(c => c.MovieId)
+                    .Contains(m.Id))
+                .OrderBy(m => m.ReleaseDate)
+                .Take(topNumber)
+                .ProjectTo<MovieReadDTO>(_mapper.ConfigurationProvider)
+                .ToListAsync();
 
-        //}
+            var result = new HomePageDTO()
+            {
+                NowShowing = nowShowing,
+                UpcomingMovies = upcomingMovies
+            };
 
-
+            return result;
+        }
+        
+        
+        
         private void AssignActorsCreditsOrder(Movie movie)
         {
             if (movie.MovieActors is not null)
