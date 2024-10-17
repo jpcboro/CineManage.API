@@ -12,7 +12,7 @@ namespace CineManage.API.Services
         public AzureFileStorage(IConfiguration config)
         {
             _config = config;
-            _connectionString = _config.GetConnectionString("AzureStorageConnectionString") ?? string.Empty;
+            _connectionString = _config.GetConnectionString("AzureStorageConnection") ?? string.Empty;
         }
         public async Task Delete(string? route, string containerName)
         {
