@@ -85,7 +85,8 @@ namespace CineManage.API.Controllers
             return CreatedAtRoute(getMovieByIdRouteName, new { Id = movie.Id }, movieReadDTO);
         }
 
-        [HttpGet]
+        [HttpGet("home")]
+        [OutputCache(Tags = [moviesCacheTag])]
         public async Task<ActionResult<HomePageDTO>> Get()
         {
             var dateToday = DateTime.Today;
