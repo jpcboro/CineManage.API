@@ -1,22 +1,15 @@
-﻿using AutoFixture;
-using AutoMapper;
+﻿using AutoMapper;
 using CineManage.API.Controllers;
 using CineManage.API.Data;
 using CineManage.API.DTOs;
 using CineManage.API.Entities;
 using CineManage.API.Services;
-using CineManage.API.Utilities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using NetTopologySuite.Geometries;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CineManage.API.Tests.Controllers
 {
@@ -24,7 +17,6 @@ namespace CineManage.API.Tests.Controllers
     {
         private readonly Mock<IOutputCacheStore> _mockOutputCacheStore;
         private readonly ApplicationContext _appContext;
-        private readonly Mock<IMapper> _mockMapper;
         private readonly MoviesController _controller;
         private readonly Mock<IFileStorage> _mockFileStorage;
 
@@ -39,12 +31,46 @@ namespace CineManage.API.Tests.Controllers
             _appContext = new ApplicationContext(options);
         
             SeedData();
+            
+            var mapperConfig = new MapperConfiguration(cfg =>
+            {
+                cfg.CreateMap<Movie, MovieDetailsDTO>()
+                    .ForMember(dest => dest.Genres,
+                        opt =>
+                            opt.MapFrom(src => src.MovieGenres.Select(
+                                mg => new GenreReadDTO()
+                                {
+                                    Id = mg.GenreId,
+                                    Name = mg.Genre.Name
+                                })))
+                    .ForMember(dest => dest.MovieTheaters, opt =>
+                        opt.MapFrom(src => src.CinemaScreenings.Select(
+                            cs => new MovieTheaterReadDTO
+                            {
+                                Id = cs.MovieTheaterId,
+                                Name = cs.MovieTheater.Name
+                            }
+                        )))
+                    .ForMember(dest => dest.Actors, opt =>
+                        opt.MapFrom(src => src.MovieActors.Select(ma => new MovieActorReadDTO()
+                        {
+                            Id = ma.ActorId,
+                            Name = ma.Actor.Name
+                        })));
+                    ;
 
-            _mockMapper = new Mock<IMapper> ();
+                cfg.CreateMap<Genre, GenreReadDTO>();
+                cfg.CreateMap<MovieTheater, MovieTheaterReadDTO>();
+                cfg.CreateMap<Actor, MovieActorReadDTO>();
+                cfg.CreateMap<Movie, MovieReadDTO>();
+                cfg.CreateMap<MovieCreationDTO, Movie>();
+            });
+
+            var mockMapper = mapperConfig.CreateMapper();
 
             _mockFileStorage = new Mock<IFileStorage>();
 
-            _controller = new MoviesController(_appContext, _mockMapper.Object,
+            _controller = new MoviesController(_appContext, mockMapper,
                 _mockOutputCacheStore.Object, _mockFileStorage.Object);
 
             _controller.ControllerContext = new ControllerContext()
@@ -55,12 +81,10 @@ namespace CineManage.API.Tests.Controllers
 
         private void SeedData()
         {
-            // Ensure genres are only created once and reused.
             var genre1 = new Genre { Id = 1, Name = "Science Fiction" };
             var genre2 = new Genre { Id = 2, Name = "Action" };
 
             _appContext.Genres.AddRange(genre1, genre2);
-            _appContext.SaveChanges();
 
             var movieTheater1 = new MovieTheater
             {
@@ -83,34 +107,82 @@ namespace CineManage.API.Tests.Controllers
             };
 
             _appContext.MovieTheaters.AddRange(movieTheater1, movieTheater2);
-            _appContext.SaveChanges();
+            
+            var actor1 = new Actor { Id = 1, Name = "Leonardo DiCaprio", Picture = "leo.jpg" };
+            var actor2 = new Actor { Id = 2, Name = "Christian Bale", Picture = "bale.jpg" };
+           
+            _appContext.AddRange(actor1, actor2);
+
 
             var movies = new List<Movie>
     {
         new Movie
         {
             Id = 1,
-            Title = "Inception",
-            ReleaseDate = new DateTime(2010, 7, 16),
+            Title = "Inception 2",
+            ReleaseDate = new DateTime(2024, 10, 10),
             MovieGenres = new List<MovieGenre>
             {
                 new MovieGenre { GenreId = genre1.Id, Genre = genre1 }
+            },
+            CinemaScreenings = new List<CinemaScreening>
+            {
+                new CinemaScreening()
+                {
+                    MovieTheaterId = movieTheater1.Id,
+                    MovieTheater = movieTheater1
+                }
+            },
+            MovieActors = new List<MovieActor>
+            {
+                new MovieActor() { ActorId = actor1.Id, Actor = actor2, CharacterName = "Cobb"}
             }
         },
         new Movie
         {
             Id = 2,
             Title = "The Dark Knight",
-            ReleaseDate = new DateTime(2008, 7, 18),
+            ReleaseDate = new DateTime(2024, 12, 25),
             MovieGenres = new List<MovieGenre>
             {
                 new MovieGenre { GenreId = genre2.Id, Genre = genre2 }
+            },
+            CinemaScreenings = new List<CinemaScreening>
+            {
+                new CinemaScreening()
+                {
+                    MovieTheaterId = movieTheater2.Id,
+                    MovieTheater = movieTheater2
+                }
+            },
+            MovieActors =  new List<MovieActor>()
+            {
+                new MovieActor()
+                {
+                    ActorId = actor2.Id,
+                    Actor = actor2,
+                    CharacterName = "Bruce Wayne"
+                }
             }
         }
     };
-
-            // Add the movies to the context.
+            
             _appContext.Movies.AddRange(movies);
+            _appContext.SaveChanges();
+
+            var movieGenre1 = new MovieGenre()
+            {
+                MovieId = 3,
+                GenreId = 3
+            };
+
+            var movieGenre2 = new MovieGenre()
+            {
+                MovieId = 4,
+                GenreId = 4
+            };
+            
+            _appContext.MovieGenres.AddRange(movieGenre1, movieGenre2);
             _appContext.SaveChanges();
         }
 
@@ -121,13 +193,22 @@ namespace CineManage.API.Tests.Controllers
         }
 
         [Fact]
+        public async Task Get_ReturnsMoviesList_WhenMoviesExist()
+        {
+            //Act
+            var result = await _controller.Get();
+            
+            //Assert
+            var actionResult = Assert.IsType<ActionResult<HomePageDTO>>(result);
+            var actionResultVal = Assert.IsType<HomePageDTO>(actionResult.Value);
+            Assert.NotNull(actionResultVal.UpcomingMovies);
+        }
+
+        [Fact]
         public async Task Get_ReturnsNotFound_IfMovieDoesNotExist()
         {
             //Arrange
             int movieId = 99;
-
-            _mockMapper.Setup(m => m.ConfigurationProvider)
-                .Returns(new MapperConfiguration(m => m.CreateMap<Movie, MovieDetailsDTO>()));
 
             //Act
             var result = await _controller.Get(movieId);
@@ -135,14 +216,13 @@ namespace CineManage.API.Tests.Controllers
             //Assert
             Assert.IsType<NotFoundResult>(result.Result);
         }
+        
 
         [Fact]
         public async Task Get_ById_ReturnsMovie_IfMovieExists()
         {
             //Arrange
             int movieId = 1;
-            _mockMapper.Setup(m => m.ConfigurationProvider)
-                .Returns(new MapperConfiguration(m => m.CreateMap<Movie, MovieDetailsDTO>()));
 
             //Act
             var result = await _controller.Get(movieId);
@@ -151,21 +231,12 @@ namespace CineManage.API.Tests.Controllers
             Assert.NotNull(result);
             var actionResult = Assert.IsType<ActionResult<MovieDetailsDTO>>(result);
             var movieReturnVal = Assert.IsType<MovieDetailsDTO>(actionResult.Value);
-            Assert.Equal("Inception", movieReturnVal.Title);
+            Assert.Equal("Inception 2", movieReturnVal.Title);
         }
 
         [Fact]
         public async Task PostGet_ReturnsGenreAndMovieTheaters()
         {
-            //Arrange
-
-            var config = new MapperConfiguration(confg =>
-            {
-                confg.CreateMap<Genre, GenreReadDTO>();
-                confg.CreateMap<MovieTheater, MovieTheaterReadDTO>();
-            });
-            _mockMapper.Setup(m => m.ConfigurationProvider).Returns(config);
-           
             //Act
             var result = await _controller.PostGet();
 
@@ -178,23 +249,16 @@ namespace CineManage.API.Tests.Controllers
         [Fact]
         public async Task Post_ReturnsCreatedAtRouteResult()
         {
-            //Arrange
-            _mockMapper.Setup(m => m.Map<Movie>(It.IsAny<MovieCreationDTO>()))
-                .Returns(GetSampleMovie());
-                
+            
             var posterUrl = "http://example.com/poster.jpg";
             _mockFileStorage.Setup(f => f.SaveFile(It.IsAny<string>(), It.IsAny<IFormFile>()))
                 .ReturnsAsync(posterUrl);
-
-            _mockMapper.Setup(m => m.Map<MovieReadDTO>(It.IsAny<Movie>()))
-                .Returns(GetMovieReadDTO());
-
+            
             var fakeMovieCreationDTO = GetMovieCreationDTO();
 
             //Act
             var result = await _controller.Post(fakeMovieCreationDTO);
-
-
+            
             //Assert
             var createdAtRouteRes = Assert.IsType<CreatedAtRouteResult>(result);
             Assert.Equal("GetMovieById", createdAtRouteRes.RouteName);
@@ -204,37 +268,61 @@ namespace CineManage.API.Tests.Controllers
         [Fact]
         public async Task Post_ReturnsCreatedAtRouteResult_WhenMovieHasNoPoster()
         {
-            //Arrange
-            _mockMapper.Setup(m => m.Map<Movie>(It.IsAny<MovieCreationDTO>()))
-                .Returns(GetSampleMovie());
-
-            _mockMapper.Setup(m => m.Map<MovieReadDTO>(It.IsAny<Movie>()))
-                .Returns(GetMovieReadDTO());
-
             var fakeMovieCreationDTO = GetMovieCreationDTO();
 
             //Act
             var result = await _controller.Post(fakeMovieCreationDTO);
-
 
             //Assert
             var createdAtRouteRes = Assert.IsType<CreatedAtRouteResult>(result);
             Assert.Equal("GetMovieById", createdAtRouteRes.RouteName);
             Assert.Equal(3, ((MovieReadDTO)createdAtRouteRes.Value!).Id);
         }
-
-        private MovieReadDTO GetMovieReadDTO()
+        
+        [Fact]
+        public async Task PutGet_ReturnsMovieGenreAndMovieTheaters()
         {
-            return new MovieReadDTO
-            {
-                Id = 3,
-                Title = "The Epic Journey",
-                Trailer = "https://www.youtube.com/watch?v=example",
-                ReleaseDate = new DateTime(2024, 12, 25),
-                Poster = "poster.jpg"
-            };
+            //Arrange
+
+            var movieId = 1;
+            
+            //Act
+            var result = await _controller.PutGet(movieId);
+
+            //Assert
+            var value = Assert.IsType<MoviesPutGetOptionsDTO>(result.Value);
+            Assert.Single(value.SelectedGenres);
+            Assert.Equal("Inception 2", value.Movie.Title);
+            Assert.Single(value.NonSelectedGenres);
+            Assert.Single(value.SelectedTheaters);
+            Assert.Single(value.NonSelectedTheaters);
+            Assert.Single(value.Actors);
+
         }
 
+        [Fact]
+        public async Task Put_ReturnsNoContent_WhenMovieIsUpdated()
+        {
+            //Arrange
+
+            var movieId = 1;
+
+            var movieCreationDto = new MovieCreationDTO()
+            {
+                Title = "Inception 2: The Inceptioning",
+
+            };
+
+            //Act
+            var result = await _controller.Put(movieId, movieCreationDto);
+
+            //Assert
+            Assert.IsType<NoContentResult>(result);
+            var movieSavedTitle = _appContext.Movies.Find(movieId)?.Title;
+            Assert.Equal(movieCreationDto.Title, movieSavedTitle);
+            _mockOutputCacheStore.Verify(o => o.EvictByTagAsync(It.IsAny<string>(), default));
+        }
+        
         private MovieCreationDTO GetMovieCreationDTO()
         {
             // Mocking IFormFile for the Poster property
@@ -252,97 +340,12 @@ namespace CineManage.API.Tests.Controllers
                 MovieTheatersIds = new List<int> { 10, 20 },
                 Actors = new List<MovieActorCreationDTO>
                 {
-                    new MovieActorCreationDTO { Id = 1, Character = "Hero" },
-                    new MovieActorCreationDTO { Id = 2, Character = "Villain" }
+                    new MovieActorCreationDTO { Id = 1, CharacterName = "Hero" },
+                    new MovieActorCreationDTO { Id = 2, CharacterName = "Villain" }
                  }
             };
         }
-
-        public Movie GetSampleMovie()
-        {
-
-           
-            var movie = new Movie
-            {
-                Id = 3,
-                Title = "The Epic Journey",
-                Trailer = "https://www.youtube.com/watch?v=example",
-                ReleaseDate = new DateTime(2024, 12, 25),
-                Poster = "poster.jpg",
-                MovieGenres = new List<MovieGenre>
-            {
-                new MovieGenre { GenreId = 3, Genre = new Genre { Id = 3, Name = "Adventure" } },
-                new MovieGenre { GenreId = 4, Genre = new Genre { Id = 4, Name = "Fantasy" } },
-                new MovieGenre { GenreId = 5, Genre = new Genre { Id = 5, Name = "Action" } }
-            },
-                CinemaScreenings = new List<CinemaScreening>
-            {
-                new CinemaScreening
-                {
-                    MovieId = 3,
-                    MovieTheaterId = 10,
-                    Movie = null!,
-                    MovieTheater =  new MovieTheater
-                    {
-                        Id = 10,
-                        Name = "Carlton Indie",
-                        Location = new Point(-37.805508, 144.971445)
-                        {
-                            SRID = 4326
-                        }
-                    }
-                },
-                new CinemaScreening
-                {
-                    MovieId = 3,
-                    MovieTheaterId = 20,
-                    Movie = null!,
-                    MovieTheater = new MovieTheater
-                    {
-                        Id = 20,
-                        Name = "Royal Botanical Gardens Theatre",
-                        Location = new Point(-37.828806, 144.980058)
-                        {
-                            SRID = 4326
-                        }
-                    }
-                }
-            },
-                MovieActors = new List<MovieActor>
-            {
-                new MovieActor
-                {
-                    ActorId = 1,
-                    MovieId = 1,
-                    CharacterName = "Hero",
-                    Order = 1,
-                    Movie = null!,
-                    Actor = new Actor { Id = 1, Name = "John Doe" }
-                },
-                new MovieActor
-                {
-                    ActorId = 2,
-                    MovieId = 1,
-                    CharacterName = "Villain",
-                    Order = 2,
-                    Movie = null!,
-                    Actor = new Actor { Id = 2, Name = "Jane Smith" }
-                }
-            }
-            };
-
-            foreach (var screening in movie.CinemaScreenings)
-            {
-                screening.Movie = movie;
-            }
-
-            foreach (var movieActor in movie.MovieActors)
-            {
-                movieActor.Movie = movie;
-            }
-
-            return movie;
-        }
+        
 
     }
 }
