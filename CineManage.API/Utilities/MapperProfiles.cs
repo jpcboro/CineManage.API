@@ -28,7 +28,7 @@ namespace CineManage.API.Utilities
                 .ForMember(movie => movie.CinemaScreenings, options =>
                 options.MapFrom(mCreationDTO => mCreationDTO.MovieTheatersIds!.Select(id => new CinemaScreening { MovieTheaterId = id })))
                 .ForMember(movie => movie.MovieActors, options => options.MapFrom(mCreationDTO => mCreationDTO.Actors!.Select(actor =>
-                new MovieActor { ActorId = actor.Id, CharacterName = actor.Character })));
+                new MovieActor { ActorId = actor.Id, CharacterName = actor.CharacterName })));
 
 
             CreateMap<Movie, MovieReadDTO>();

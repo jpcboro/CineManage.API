@@ -114,6 +114,75 @@ namespace CineManage.API.Controllers
             return result;
         }
         
+        [HttpGet("putget/{id:int}")]
+        public async Task<ActionResult<MoviesPutGetOptionsDTO>> PutGet(int id)
+        {
+            var movieDetailsDto = await _appContext.Movies.ProjectTo<MovieDetailsDTO>(_mapper.ConfigurationProvider)
+                                        .FirstOrDefaultAsync(m => m.Id == id);
+
+            if (movieDetailsDto == null)
+            {
+                return NotFound();
+            }
+            
+            var selectedGenreIds = movieDetailsDto.Genres.Select(g => g.Id);
+            
+            var nonSelectedGenres = await _appContext.Genres.Where(g => !selectedGenreIds.Contains(g.Id))
+                .ProjectTo<GenreReadDTO>(_mapper.ConfigurationProvider).ToListAsync();
+            
+
+            var selectedMovieTheaterIds = movieDetailsDto.MovieTheaters.Select(m => m.Id);
+            
+
+            var nonSelectedTheaters = await _appContext.MovieTheaters
+                .Where(t => !selectedMovieTheaterIds.Contains(t.Id))
+                .ProjectTo<MovieTheaterReadDTO>(_mapper.ConfigurationProvider).ToListAsync();
+
+
+            return new MoviesPutGetOptionsDTO()
+            {
+                Movie = movieDetailsDto,
+                SelectedGenres = movieDetailsDto.Genres,
+                NonSelectedGenres = nonSelectedGenres,
+                SelectedTheaters = movieDetailsDto.MovieTheaters,
+                NonSelectedTheaters = nonSelectedTheaters,
+                Actors = movieDetailsDto.Actors
+            };
+        }
+
+        [HttpPut("{id:int}")]
+        public async Task<ActionResult> Put(int id, [FromForm] MovieCreationDTO movieCreationDto)
+        {
+            
+            var movie = await _appContext.Movies
+                .Include(m => m.MovieGenres)
+                .Include(m => m.CinemaScreenings)
+                .Include(m => m.MovieActors)
+                .FirstOrDefaultAsync(m => m.Id == id);
+
+            
+            if (movie == null)
+            {
+                return NotFound();
+            }
+
+            _mapper.Map(movieCreationDto, movie);
+
+            if (movieCreationDto.Poster != null)
+            {
+                movie.Poster = await _fileStorage.SaveEditedFile(movie.Poster,
+                    moviesContainer, movieCreationDto.Poster);
+            }
+            
+            AssignActorsCreditsOrder(movie);
+            
+            await _appContext.SaveChangesAsync();
+
+            await _outputCacheStore.EvictByTagAsync(moviesCacheTag, default);
+
+            return NoContent();
+
+        }
         
         
         private void AssignActorsCreditsOrder(Movie movie)

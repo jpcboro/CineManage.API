@@ -92,7 +92,8 @@ namespace CineManage.API.Controllers
 
             if (actorCreateDTO.Picture != null)
             {
-                actor.Picture = await _fileStorage.SaveEditedFile(actor.Picture, actorsContainer, actorCreateDTO.Picture);
+                actor.Picture = await _fileStorage.SaveEditedFile(actor.Picture, 
+                    actorsContainer, actorCreateDTO.Picture);
             }
 
             await _appContext.SaveChangesAsync();
