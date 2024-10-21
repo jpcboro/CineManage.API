@@ -310,7 +310,7 @@ namespace CineManage.API.Tests.Controllers
             var movieCreationDto = new MovieCreationDTO()
             {
                 Title = "Inception 2: The Inceptioning",
-
+                Poster = new FormFile(null, 0, 0, "Poster", "new-poster.jpg")
             };
 
             //Act
@@ -320,7 +320,66 @@ namespace CineManage.API.Tests.Controllers
             Assert.IsType<NoContentResult>(result);
             var movieSavedTitle = _appContext.Movies.Find(movieId)?.Title;
             Assert.Equal(movieCreationDto.Title, movieSavedTitle);
+            _mockFileStorage.Verify(f => f.SaveEditedFile(It.IsAny<string>(),
+                It.IsAny<string>(), It.IsAny<IFormFile>()), Times.Once);
             _mockOutputCacheStore.Verify(o => o.EvictByTagAsync(It.IsAny<string>(), default));
+        }
+
+        [Fact]
+        public async Task Put_ReturnsNotFound_WhenMovieIsNotFound()
+        {
+            //Arrange
+
+            var movieId = 99;
+
+            var movieCreationDto = new MovieCreationDTO()
+            {
+                Title = "New Avengers",
+            };
+            
+            //Act
+            var result = await _controller.Put(movieId, movieCreationDto);
+            
+            //Assert
+             Assert.IsType<NotFoundResult>(result);
+            _mockOutputCacheStore.Verify(o => o.EvictByTagAsync(It.IsAny<string>(), default), Times.Never);
+        }
+
+        [Fact]
+        public async Task Delete_ShouldRemoveMovieAndReturnNoContent()
+        {
+            //Arrange
+            int movieId = 1;
+            
+            //Act
+            var result = await _controller.Delete(movieId);
+            
+            //Assert
+            Assert.IsType<NoContentResult>(result);
+            Assert.Null(await _appContext.Movies.FindAsync(movieId));
+            _mockFileStorage.Verify(f => f.Delete(It.IsAny<string>(),
+                It.IsAny<string>()), Times.Once);
+            _mockOutputCacheStore.Verify(o => o.EvictByTagAsync(It.IsAny<string>(),
+                default), Times.Once);
+
+        }
+
+        [Fact]
+        public async Task Delete_MovieDoesNotExist_ReturnNotFound()
+        {
+            //Arrange
+            var movieId = 99;
+            
+            //Act
+            var result = await _controller.Delete(movieId);
+
+            //Assert
+            Assert.IsType<NotFoundResult>(result);
+            
+            _mockFileStorage.Verify(f => f.Delete(It.IsAny<string>(),
+                It.IsAny<string>()), Times.Never);
+            _mockOutputCacheStore.Verify(o => o.EvictByTagAsync(It.IsAny<string>(),
+                default), Times.Never);
         }
         
         private MovieCreationDTO GetMovieCreationDTO()

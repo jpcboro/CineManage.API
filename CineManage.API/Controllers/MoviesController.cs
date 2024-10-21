@@ -183,6 +183,27 @@ namespace CineManage.API.Controllers
             return NoContent();
 
         }
+
+        [HttpDelete("{id:int}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+              var movie = await _appContext.Movies.FirstOrDefaultAsync(m => m.Id == id);
+
+            if (movie == null)
+            {
+                return NotFound();
+            }
+
+            _appContext.Remove(movie);
+            await _appContext.SaveChangesAsync();
+
+            await _fileStorage.Delete(route: movie.Poster, container: moviesContainer);
+            await _outputCacheStore.EvictByTagAsync(moviesCacheTag, default);
+
+            return NoContent();
+
+
+        }
         
         
         private void AssignActorsCreditsOrder(Movie movie)
