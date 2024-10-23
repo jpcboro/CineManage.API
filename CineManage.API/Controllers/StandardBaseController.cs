@@ -41,6 +41,16 @@ namespace CineManage.API.Controllers
                 .ToListAsync();
         }
 
+        protected async Task<List<TReadDTO>> Get<TEntity, TReadDTO>(Expression<Func<TEntity, object>> orderBy)
+            where TEntity : class
+        {
+            var queryableEntity = _appContext.Set<TEntity>().AsQueryable();
+            
+            return await queryableEntity.OrderBy(orderBy)
+                .ProjectTo<TReadDTO>(_mapper.ConfigurationProvider)
+                .ToListAsync();
+        }
+
         protected async Task<ActionResult<TReadDto>> Get<TEntity, TReadDto>(int id)
             where TEntity: class
             where TReadDto: IId

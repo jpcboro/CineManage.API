@@ -42,6 +42,13 @@ public class GenresController: StandardBaseController
     {
         return await Get<Genre, GenreReadDTO>(id);
     }
+
+    [HttpGet("all")]
+    [OutputCache(Tags = [genresCacheTag])]
+    public async Task<List<GenreReadDTO>> Get()
+    {
+        return await Get<Genre, GenreReadDTO>(orderBy: genre => genre.Name);
+    }
     
     [HttpPost]
     public async Task<CreatedAtRouteResult> Post([FromBody]GenreCreationDTO genreCreationDTO)

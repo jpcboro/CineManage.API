@@ -4,6 +4,7 @@ using CineManage.API.Data;
 using CineManage.API.DTOs;
 using CineManage.API.Entities;
 using CineManage.API.Services;
+using CineManage.API.Utilities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
@@ -201,8 +202,46 @@ namespace CineManage.API.Controllers
             await _outputCacheStore.EvictByTagAsync(moviesCacheTag, default);
 
             return NoContent();
+            
+        }
 
+        [HttpGet("filter")]
+        public async Task<List<MovieReadDTO>> Get([FromQuery]MoviesFilterDTO moviesFilterDto)
+        {
+            var moviesQueryable = _appContext.Movies.AsQueryable();
 
+            if (!string.IsNullOrEmpty(moviesFilterDto.Title))
+            {
+                moviesQueryable = moviesQueryable
+                    .Where(m => m.Title.ToLower()
+                        .Contains(moviesFilterDto.Title.ToLower()));
+
+            }
+
+            if (moviesFilterDto.IsNowShowing)
+            {
+                moviesQueryable = moviesQueryable.Where(movie => movie.CinemaScreenings.Select(c => c.MovieId).Contains(movie.Id));
+            }
+
+            if (moviesFilterDto.IsUpcomingMovie)
+            {
+                var dateToday = DateTime.Today;
+                moviesQueryable = moviesQueryable.Where(movie => movie.ReleaseDate > dateToday);
+            }
+
+            if (moviesFilterDto.GenreId != 0)
+            {
+                moviesQueryable = moviesQueryable.Where(movie => movie.MovieGenres.Select(mg => mg.GenreId)
+                    .Contains(moviesFilterDto.GenreId));
+            }
+
+            await HttpContext.InserPaginationParametersInHeader(moviesQueryable);
+
+            var movies = await moviesQueryable.Paginate(moviesFilterDto.PaginationDto)
+                .ProjectTo<MovieReadDTO>(_mapper.ConfigurationProvider)
+                .ToListAsync();
+
+            return movies;
         }
         
         
