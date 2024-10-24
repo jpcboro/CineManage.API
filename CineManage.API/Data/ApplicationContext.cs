@@ -1,9 +1,10 @@
 ﻿using CineManage.API.Entities;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace CineManage.API.Data
 {
-    public class ApplicationContext : DbContext
+    public class ApplicationContext : IdentityDbContext
     {
         public ApplicationContext(DbContextOptions options) : base(options)
         {
