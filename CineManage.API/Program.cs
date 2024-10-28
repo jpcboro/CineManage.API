@@ -1,10 +1,13 @@
+using System.Text;
 using AutoMapper;
 using CineManage;
 using CineManage.API.Data;
 using CineManage.API.Services;
 using CineManage.API.Utilities;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using NetTopologySuite;
 using NetTopologySuite.Geometries;
 
@@ -13,7 +16,6 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
 builder.Services.AddControllers();
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -54,7 +56,32 @@ builder.Services.AddSingleton(provider => new MapperConfiguration(config =>
 }).CreateMapper()
 );
 
-builder.Services.AddScoped<IFileStorage, AzureFileStorage>();
+builder.Services.AddTransient<IFileStorage, AzureFileStorage>();
+
+builder.Services.AddIdentityCore<IdentityUser>()
+    .AddEntityFrameworkStores<ApplicationContext>()
+    .AddDefaultTokenProviders();
+
+builder.Services.AddScoped<UserManager<IdentityUser>>();
+builder.Services.AddScoped<SignInManager<IdentityUser>>();
+
+
+builder.Services.AddAuthentication().AddJwtBearer(options =>
+{
+    options.MapInboundClaims = false;
+
+    options.TokenValidationParameters = new TokenValidationParameters()
+    {
+        ValidateIssuer = false,
+        ValidateAudience = false,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding
+            .UTF8.GetBytes(builder.Configuration["jwtKey"]!)),
+        ClockSkew = TimeSpan.Zero
+    };
+});
+
 
 
 var app = builder.Build();
