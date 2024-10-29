@@ -57,6 +57,7 @@ builder.Services.AddSingleton(provider => new MapperConfiguration(config =>
 );
 
 builder.Services.AddTransient<IFileStorage, AzureFileStorage>();
+builder.Services.AddTransient<IUsersService, UsersService>();
 
 builder.Services.AddIdentityCore<IdentityUser>()
     .AddEntityFrameworkStores<ApplicationContext>()
