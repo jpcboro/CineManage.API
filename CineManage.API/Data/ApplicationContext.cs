@@ -27,5 +27,6 @@ namespace CineManage.API.Data
         public DbSet<MovieGenre> MovieGenres { get; set; }
         public DbSet<CinemaScreening> CinemaScreenings { get; set; }
         public DbSet<MovieActor> MovieActors { get; set; }
+        public DbSet<Rating> MovieRatings { get; set; }
     }
 }
