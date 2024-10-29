@@ -5,6 +5,8 @@ using CineManage.API.DTOs;
 using CineManage.API.Entities;
 using CineManage.API.Services;
 using CineManage.API.Utilities;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
@@ -13,10 +15,12 @@ namespace CineManage.API.Controllers
 {
     [Route("api/movies")]
     [ApiController]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class MoviesController : ControllerBase
     {
         private readonly IOutputCacheStore _outputCacheStore;
         private readonly IFileStorage _fileStorage;
+        private readonly IUsersService _usersService;
         private readonly ApplicationContext _appContext;
         private readonly IMapper _mapper;
         private const string moviesCacheTag = "movies";
@@ -24,16 +28,19 @@ namespace CineManage.API.Controllers
         private const string getMovieByIdRouteName = "GetMovieById";
 
         public MoviesController(ApplicationContext appContext, IMapper mapper,
-            IOutputCacheStore outputCacheStore, IFileStorage fileStorage)
+            IOutputCacheStore outputCacheStore, IFileStorage fileStorage,
+            IUsersService usersService)
         {
             _appContext = appContext;
             _mapper = mapper;
             _outputCacheStore = outputCacheStore;
             _fileStorage = fileStorage;
+            _usersService = usersService;
         }
 
         [HttpGet("{id:int}", Name = getMovieByIdRouteName)]
         [OutputCache(Tags = [moviesCacheTag])]
+        [AllowAnonymous]
         public async Task<ActionResult<MovieDetailsDTO>> Get(int id)
         {
             var movie = await _appContext.Movies
@@ -45,6 +52,27 @@ namespace CineManage.API.Controllers
                 return NotFound();
             }
 
+            var ratings = _appContext.MovieRatings.Where(r => r.MovieId == id);
+            
+            movie.AverageRating = await ratings.AnyAsync()
+                ? await ratings.AverageAsync(r => r.Rate)
+                : 0.0;
+
+
+            if (HttpContext.User.Identity?.IsAuthenticated != true)
+            {
+                return movie;
+            }
+            
+      
+            string? userId = await _usersService.GetUserId();
+
+            movie.UserRating = !string.IsNullOrEmpty(userId)
+                ? await ratings.Where(r => r.UserId == userId)
+                    .Select(r => r.Rate)
+                    .FirstOrDefaultAsync()
+                : 0;
+            
             return movie;
         }
         
@@ -88,6 +116,7 @@ namespace CineManage.API.Controllers
 
         [HttpGet("home")]
         [OutputCache(Tags = [moviesCacheTag])]
+        [AllowAnonymous]
         public async Task<ActionResult<HomePageDTO>> Get()
         {
             var dateToday = DateTime.Today;
@@ -206,6 +235,7 @@ namespace CineManage.API.Controllers
         }
 
         [HttpGet("filter")]
+        [AllowAnonymous]
         public async Task<List<MovieReadDTO>> Get([FromQuery]MoviesFilterDTO moviesFilterDto)
         {
             var moviesQueryable = _appContext.Movies.AsQueryable();
