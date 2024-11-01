@@ -1,9 +1,15 @@
 using System.IdentityModel.Tokens.Jwt;
+using System.Net;
 using System.Security.Claims;
 using System.Text;
+using AutoMapper;
+using CineManage.API.Data;
 using CineManage.API.DTOs;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.IdentityModel.Tokens;
 using SignInResult = Microsoft.AspNetCore.Identity.SignInResult;
 
@@ -11,22 +17,36 @@ namespace CineManage.API.Controllers;
 
 [ApiController]
 [Route("api/users")]
-public class UsersController : ControllerBase
+[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Policy = Constants.AuthorizationIsAdmin)]
+public class UsersController : StandardBaseController
 {
     private readonly UserManager<IdentityUser> _userManager;
     private readonly SignInManager<IdentityUser> _signInManager;
     private readonly IConfiguration _config;
+    private readonly ApplicationContext _appContext;
+    private readonly IOutputCacheStore _outputCacheStore;
+    private readonly IMapper _mapper;
+    private const string createAdmin = "createAdmin";
+    private const string removeAdmin = "removeAdmin";
+    private const string trueString = "true";
+    private const string usersCacheTag = "users";
 
     public UsersController(UserManager<IdentityUser> userManager,
         SignInManager<IdentityUser> signInManager,
-        IConfiguration config)
+        IConfiguration config, ApplicationContext appContext, IOutputCacheStore outputCacheStore,
+        IMapper mapper) : base(appContext: appContext, mapper: mapper, outputCacheStore: outputCacheStore,
+        cacheTag: usersCacheTag)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _config = config;
+        _appContext = appContext;
+        _outputCacheStore = outputCacheStore;
+        _mapper = mapper;
     }
 
     [HttpPost("register")]
+    [AllowAnonymous]
     public async Task<ActionResult<AuthenticationResponseDTO>> Register(UserLoginDTO userLoginDto)
     {
         IdentityUser user = new IdentityUser()
@@ -49,6 +69,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpPost("login")]
+    [AllowAnonymous]
     public async Task<ActionResult<AuthenticationResponseDTO>> Login(UserLoginDTO userLoginDto)
     {
         IdentityUser? user = await _userManager.FindByEmailAsync(userLoginDto.Email);
@@ -73,6 +94,60 @@ public class UsersController : ControllerBase
             return BadRequest(errors);
         }
     }
+
+    [HttpPost(createAdmin)]
+    public async Task<IActionResult> CreateAdmin(EditClaimDTO editClaimDto)
+    {
+        var user = await _userManager.FindByEmailAsync(editClaimDto.Email);
+
+        if (user == null)
+        {
+            return NotFound();
+        }
+
+        await _userManager.AddClaimAsync(user, new Claim(type: Constants.AuthorizationIsAdmin,
+            value: trueString));
+
+        return NoContent();
+    }
+
+    [HttpPost(removeAdmin)]
+    
+    public async Task<IActionResult> RemoveAdmin(EditClaimDTO editClaimDto)
+    {
+        var user = await _userManager.FindByEmailAsync(editClaimDto.Email);
+
+        if (user == null)
+        {
+            return NotFound();
+        }
+
+        await _userManager.RemoveClaimAsync(user, new Claim(Constants.AuthorizationIsAdmin, trueString));
+
+        return NoContent();
+    }
+
+    [HttpGet("usersList")]
+    [OutputCache(Tags = [usersCacheTag])]
+    public async Task<ActionResult<List<UserDTO>>> GetUserList([FromQuery] PaginationDTO paginationDto)
+    {
+        return await Get<IdentityUser, UserDTO>(paginationDto, orderBy: u => u.Email!);
+    }
+
+    [HttpGet("isAdmin")]
+    public async Task<IActionResult> IsAdmin(string email)
+    {
+        var user = await _userManager.FindByEmailAsync(email);
+
+        if (user == null)
+        {
+            return NotFound();
+        }
+
+        bool isAdmin = await _userManager.IsInRoleAsync(user, "isAdmin");
+        return Ok(isAdmin);
+    }
+    
 
     private IEnumerable<IdentityError> CreateWrongLoginErrorMessage()
     {
