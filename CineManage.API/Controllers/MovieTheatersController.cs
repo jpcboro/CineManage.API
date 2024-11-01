@@ -2,6 +2,8 @@
 using CineManage.API.Data;
 using CineManage.API.DTOs;
 using CineManage.API.Entities;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
 
@@ -9,6 +11,7 @@ namespace CineManage.API.Controllers
 {
     [Route("api/movietheaters")]
     [ApiController]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Policy = Constants.AuthorizationIsAdmin)]
     public class MovieTheatersController : StandardBaseController
     {
         private const string mTheaterCacheTag = "movieTheaters";

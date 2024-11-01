@@ -15,7 +15,7 @@ namespace CineManage.API.Controllers
 {
     [Route("api/movies")]
     [ApiController]
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Policy = Constants.AuthorizationIsAdmin)]
     public class MoviesController : ControllerBase
     {
         private readonly IOutputCacheStore _outputCacheStore;

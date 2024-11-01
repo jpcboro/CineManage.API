@@ -4,6 +4,8 @@ using CineManage.API.Data;
 using CineManage.API.DTOs;
 using CineManage.API.Entities;
 using CineManage.API.Utilities;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
@@ -13,6 +15,7 @@ namespace CineManage.API.Controllers;
 
 [Route("api/genres")]
 [ApiController]
+[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Policy = Constants.AuthorizationIsAdmin)]
 public class GenresController: StandardBaseController
 {
     private readonly IOutputCacheStore _outputCacheStore;
@@ -45,6 +48,7 @@ public class GenresController: StandardBaseController
 
     [HttpGet("all")]
     [OutputCache(Tags = [genresCacheTag])]
+    [AllowAnonymous]
     public async Task<List<GenreReadDTO>> Get()
     {
         return await Get<Genre, GenreReadDTO>(orderBy: genre => genre.Name);

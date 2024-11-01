@@ -5,6 +5,8 @@ using CineManage.API.DTOs;
 using CineManage.API.Entities;
 using CineManage.API.Services;
 using CineManage.API.Utilities;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
@@ -13,6 +15,7 @@ namespace CineManage.API.Controllers
 {
     [Route("api/actors")]
     [ApiController]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Policy = Constants.AuthorizationIsAdmin)]
     public class ActorsController : StandardBaseController
     {
         private readonly ApplicationContext _appContext;
