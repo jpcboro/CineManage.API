@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using CineManage.API.DTOs;
 using CineManage.API.Entities;
+using Microsoft.AspNetCore.Identity;
 using NetTopologySuite.Geometries;
 
 namespace CineManage.API.Utilities
@@ -17,6 +18,12 @@ namespace CineManage.API.Utilities
             ConfigureActors();
             ConfigureMovieTheaters(geoFactory);
             ConfigureMovies();
+            ConfigureUsers();
+        }
+
+        private void ConfigureUsers()
+        {
+            CreateMap<IdentityUser, UserDTO>();
         }
 
         private void ConfigureMovies()
