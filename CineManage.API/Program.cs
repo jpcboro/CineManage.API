@@ -83,7 +83,10 @@ builder.Services.AddAuthentication().AddJwtBearer(options =>
     };
 });
 
-
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(Constants.AuthorizationIsAdmin, policy => policy.RequireClaim(Constants.AuthorizationIsAdmin));
+});
 
 var app = builder.Build();
 
