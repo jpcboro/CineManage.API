@@ -126,27 +126,32 @@ public class UsersController : StandardBaseController
 
         return NoContent();
     }
+    
 
-    [HttpGet("usersList")]
+    [HttpGet("usersAndAdminsList")]
     [OutputCache(Tags = [usersCacheTag])]
-    public async Task<ActionResult<List<UserDTO>>> GetUserList([FromQuery] PaginationDTO paginationDto)
+    public async Task<ActionResult<List<UserDTO>>> GetAllUsersAndAdminStatuses([FromQuery] PaginationDTO paginationDto)
     {
-        return await Get<IdentityUser, UserDTO>(paginationDto, orderBy: u => u.Email!);
-    }
+        var users = await Get<IdentityUser, UserDTO>(paginationDto, orderBy: u => u.Email!);
 
-    [HttpGet("isAdmin")]
-    public async Task<IActionResult> IsAdmin(string email)
-    {
-        var user = await _userManager.FindByEmailAsync(email);
+        var userAdminStatuses = new List<UserDTO>();
 
-        if (user == null)
+        foreach (var userDto in users)
         {
-            return NotFound();
+            var user = await _userManager.FindByEmailAsync(userDto.Email);
+            
+            if (user == null) 
+                continue;
+
+            var claims = await _userManager.GetClaimsAsync(user);
+            userDto.IsAdmin = claims.Any(c => c.Type == Constants.AuthorizationIsAdmin && c.Value == "true");
+            
+            userAdminStatuses.Add(userDto);
         }
 
-        bool isAdmin = await _userManager.IsInRoleAsync(user, "isAdmin");
-        return Ok(isAdmin);
+        return Ok(userAdminStatuses);
     }
+    
     
 
     private IEnumerable<IdentityError> CreateWrongLoginErrorMessage()
