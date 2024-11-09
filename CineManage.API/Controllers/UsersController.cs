@@ -60,6 +60,12 @@ public class UsersController : StandardBaseController
 
         if (result.Succeeded)
         {
+            var totalUsers = _userManager.Users.Count();
+            if (totalUsers == 1)
+            {
+                await _userManager.AddClaimAsync(user, new Claim(type: Constants.AuthorizationIsAdmin,
+                         value: trueString));
+            }
             return await CreateTokenFromUser(user);
         }
         else
