@@ -19,6 +19,7 @@ namespace CineManage.API.Tests.Controllers
         private readonly ApplicationContext _appContext;
         private readonly MoviesController _controller;
         private readonly Mock<IFileStorage> _mockFileStorage;
+        private readonly Mock<IUsersService> _mockUserService;
 
         public MoviesControllerTests()
         {
@@ -70,8 +71,11 @@ namespace CineManage.API.Tests.Controllers
 
             _mockFileStorage = new Mock<IFileStorage>();
 
+            _mockUserService = new Mock<IUsersService>();
+
             _controller = new MoviesController(_appContext, mockMapper,
-                _mockOutputCacheStore.Object, _mockFileStorage.Object);
+                _mockOutputCacheStore.Object, _mockFileStorage.Object,
+                _mockUserService.Object);
 
             _controller.ControllerContext = new ControllerContext()
             {
