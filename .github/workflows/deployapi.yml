@@ -5,6 +5,9 @@ name: Deploy CineManage API
 on:
   workflow_dispatch:
 
+env:
+  AZURE_WEBAPP_NAME: "CineManageAPI20241107163034"
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -22,3 +25,15 @@ jobs:
 
       - name: Build
         run: dotnet build ./CineManage.API/CineManage.API.csproj --configuration Release --no-restore
+
+      # publish
+      - name: Publish
+        run: dotnet publish ./CineManage.API/CineManage.API.csproj --configuration Release --output ./publish
+
+      # Azure deployment
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.API_PUBLISH_SECRET }}
+          package: ./publish
