@@ -51,7 +51,6 @@ public class GenresController: StandardBaseController
     [AllowAnonymous]
     public async Task<List<GenreReadDTO>> Get()
     {
-        throw new Exception("For testing Application insights");
         return await Get<Genre, GenreReadDTO>(orderBy: genre => genre.Name);
     }
     
