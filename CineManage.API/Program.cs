@@ -154,4 +154,13 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+app.Use(async (context, next) =>
+{
+    await next();
+    if (context.Response.StatusCode == 500)
+    {
+        context.Response.Headers.Add("Access-Control-Allow-Origin", allowedOrigins[0]);
+    }
+});
+
 app.Run();
